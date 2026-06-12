@@ -1,0 +1,117 @@
+# Laboratorio de Observabilidad — Infraestructura como Código
+# Levanta apps (backend + frontend) y el stack completo: Prometheus, Loki,
+# Alloy, Grafana, node-exporter y cAdvisor.
+#
+#   docker compose up -d --build      # levantar todo
+#   docker compose down               # detener (conserva dashboards de Grafana)
+#   docker compose down -v            # detener y borrar datos (reset total)
+
+services:
+  # ----------------------------- Aplicaciones -----------------------------
+  backend:
+    build: ./apps/backend
+    container_name: lab-backend
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+
+  frontend:
+    build: ./apps/frontend
+    container_name: lab-frontend
+    environment:
+      - BACKEND_URL=http://backend:3001
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # ----------------------------- Métricas -----------------------------
+  prometheus:
+    image: prom/prometheus:v3.8.1
+    container_name: lab-prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: lab-node-exporter
+    command:
+      - "--path.rootfs=/host"
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    ports:
+      - "9100:9100"
+    restart: unless-stopped
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: lab-cadvisor
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    devices:
+      - /dev/kmsg
+    ports:
+      - "8081:8080"
+    restart: unless-stopped
+
+  # ----------------------------- Logs -----------------------------
+  loki:
+    image: grafana/loki:3.4.0
+    container_name: lab-loki
+    command: -config.file=/etc/loki/loki-config.yaml
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+    ports:
+      - "3100:3100"
+    restart: unless-stopped
+
+  alloy:
+    image: grafana/alloy:v1.10.0
+    container_name: lab-alloy
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "12345:12345"
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  # ----------------------------- Visualización -----------------------------
+  grafana:
+    image: grafana/grafana:12.4.0
+    container_name: lab-grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_DEFAULT_THEME=light
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - loki
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:

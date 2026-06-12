@@ -1,0 +1,50 @@
+// Grafana Alloy: recolecta los logs de TODOS los contenedores vía el socket de
+// Docker y los envía a Loki. Etiqueta cada flujo con el servicio de compose y un
+// "tier" (application | infrastructure) para separar logs de app e infraestructura.
+
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+
+  // Nombre del contenedor
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  // Nombre del servicio definido en docker-compose
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+
+  // Por defecto, todo es infraestructura
+  rule {
+    target_label = "tier"
+    replacement  = "infrastructure"
+  }
+
+  // backend/frontend se marcan como aplicación
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(lab-backend|lab-frontend)"
+    target_label  = "tier"
+    replacement   = "application"
+  }
+}
+
+loki.source.docker "containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.containers.output
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

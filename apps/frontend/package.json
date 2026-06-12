@@ -1,0 +1,13 @@
+{
+  "name": "lab-frontend",
+  "version": "1.0.0",
+  "description": "Frontend Hello World instrumentado para el laboratorio de observabilidad",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "prom-client": "^15.1.3"
+  }
+}
