@@ -282,7 +282,7 @@ En los **logs de infraestructura** también se puede verificar que llegaron logs
 
 ## Breve explicación de cada componente del stack (5–8 líneas)
 
-El stack se compone de 8 servicios que trabajan en conjunto. El **backend** y el **frontend** son las aplicaciones del laboratorio: generan tráfico, exponen sus métricas en `/metrics` y escriben logs. **Prometheus** es la base de datos de métricas: recolecta y almacena los valores numéricos en el tiempo. Para alimentarlo, **node-exporter** aporta las métricas del host y **cAdvisor** las de los contenedores. Por el lado de los logs, **Loki** los almacena y **Grafana Alloy** es el recolector que toma los logs de cada contenedor y los envía a Loki. Finalmente, **Grafana** es la capa de visualización: se conecta a Prometheus y a Loki, dibuja los dashboards y gestiona las alarmas.
+El stack se compone de 8 servicios que trabajan en conjunto. El backend y el frontend son las aplicaciones del laboratorio: Generan tráfico, exponen sus métricas en y escriben logs. Prometheus es la base de datos de métricas: Recolecta y almacena los valores numéricos en el tiempo. Para alimentarlo, node-exporter aporta las métricas del host y cAdvisor las de los contenedores. Por el lado de los logs, Loki los almacena y Grafana Alloy es el recolector que toma los logs de cada contenedor y los envía a Loki. Finalmente, Grafana es la capa de visualización: Se conecta a Prometheus y a Loki, dibuja los dashboards y gestiona las alarmas.
 
 ---
 
